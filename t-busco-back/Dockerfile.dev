@@ -1,0 +1,16 @@
+# Imagen para DESARROLLO local. Solo instala dependencias y corre en modo watch.
+# (La imagen para producción en Railway se hace aparte, cuando lleguemos a eso.)
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copiar solo los package*.json primero: si no cambian, Docker reutiliza el
+# paso de "npm install" en la siguiente vez que construyas la imagen (más rápido)
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3001
+
+CMD ["npm", "run", "start:dev"]

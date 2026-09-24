@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tbusco-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - tbusco_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: tbusco-backend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    volumes:
+      - .:/app          # tu código entra al contenedor: al guardar, NestJS recarga solo
+      - /app/node_modules  # evita que el paso anterior borre las dependencias ya instaladas
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run start:dev
+
+  # Adminer: interfaz web para ver las tablas de Postgres sin instalar nada aparte
+  adminer:
+    image: adminer:latest
+    container_name: tbusco-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+volumes:
+  tbusco_db_data:

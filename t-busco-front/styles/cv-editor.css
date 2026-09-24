@@ -1,0 +1,122 @@
+/* ================= EDITOR DE HOJA DE VIDA ================= */
+.pagina-editor { width: min(1360px, 100% - 48px); margin-inline: auto; padding-block: 28px 64px; }
+
+.editor-barra { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+.editor-barra h1 { font-size: 2rem; }
+.editor-barra p { color: var(--texto-suave); font-size: 0.9rem; margin-top: 4px; }
+.editor-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+.boton-pequeno { padding: 9px 16px; font-size: 0.8rem; }
+
+.aviso { padding: 10px 16px; border-radius: var(--radio-pequeno); font-size: 0.85rem; font-weight: 500; margin-bottom: 14px; }
+.aviso-ok { background: var(--verde-fondo); color: var(--verde-texto); }
+.aviso-error { background: #FDE7EA; color: #A3193A; }
+
+.editor-tabs { display: none; gap: 8px; margin-bottom: 14px; }
+.editor-tabs button {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px;
+  border: 1px solid var(--borde); background: #fff; color: var(--azul); font-size: 0.85rem; font-weight: 600;
+}
+.editor-tabs button[aria-pressed='true'] { background: var(--azul); color: #fff; border-color: var(--azul); }
+
+.editor-cv { display: grid; grid-template-columns: minmax(380px, 480px) 1fr; gap: 24px; align-items: start; }
+.editor-previa { position: sticky; top: 96px; max-height: calc(100vh - 116px); overflow: auto; border-radius: var(--radio); }
+.editor-previa .cv { max-width: none; }
+
+/* ----- Bloques plegables ----- */
+.bloque { background: #fff; border: 1px solid var(--borde); border-radius: var(--radio); margin-bottom: 12px; box-shadow: var(--sombra); }
+.bloque > summary {
+  display: flex; align-items: center; gap: 10px; padding: 16px 20px; cursor: pointer;
+  font-weight: 600; color: var(--azul); list-style: none;
+}
+.bloque > summary::-webkit-details-marker { display: none; }
+.bloque > summary::after {
+  content: ''; margin-left: auto; width: 8px; height: 8px; transform: rotate(45deg); transition: transform 0.15s;
+  border-right: 2px solid var(--azul); border-bottom: 2px solid var(--azul);
+}
+.bloque[open] > summary::after { transform: rotate(-135deg); }
+.bloque-cuerpo { padding: 4px 20px 20px; display: grid; gap: 16px; }
+
+/* ----- Campos ----- */
+.rejilla-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.campo { display: grid; gap: 6px; font-size: 0.8rem; align-content: start; }
+.campo-completo { grid-column: 1 / -1; }
+.campo-etiqueta { font-weight: 600; color: var(--azul); font-size: 0.8rem; margin: 0 0 6px; }
+.campo .campo-etiqueta { margin: 0; }
+.campo input:not([type='checkbox']), .campo select, .campo textarea, .etiquetas-entrada input {
+  width: 100%; border: 1px solid var(--borde); border-radius: var(--radio-pequeno);
+  padding: 10px 12px; background: #fff; font-size: 0.85rem; color: var(--texto);
+}
+.campo textarea { resize: vertical; min-height: 90px; }
+.campo input:disabled { background: var(--gris); color: var(--texto-suave); cursor: not-allowed; }
+.campo input[aria-invalid='true'] { border-color: #D6455F; }
+.campo-ayuda { color: var(--texto-suave); font-size: 0.74rem; }
+.campo-error { color: #A3193A; font-size: 0.76rem; font-weight: 500; }
+.nota { font-size: 0.8rem; color: var(--texto-suave); }
+.check { display: flex; align-items: center; gap: 10px; font-size: 0.82rem; color: var(--texto); cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--azul); }
+
+/* ----- Elementos repetibles ----- */
+.item-form { border: 1px solid var(--borde); border-radius: var(--radio-pequeno); padding: 16px; display: grid; gap: 14px; background: var(--fondo); }
+.item-cabecera { display: flex; justify-content: space-between; align-items: center; color: var(--azul); font-size: 0.85rem; }
+.boton-peligro { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; color: #B4233F; font-size: 0.78rem; font-weight: 600; padding: 4px 6px; border-radius: 6px; }
+.boton-peligro:hover { background: #FDE7EA; }
+.boton-agregar {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px;
+  border: 1.5px dashed #9DB6DE; border-radius: var(--radio-pequeno); background: transparent;
+  color: var(--azul); font-weight: 600; font-size: 0.85rem;
+}
+.boton-agregar:hover { background: var(--claro); }
+
+/* ----- Habilidades (chips) ----- */
+.etiquetas-entrada { display: flex; gap: 8px; }
+.etiquetas-entrada input { flex: 1; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--claro); color: #2559B8; border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 0.78rem; font-weight: 500; }
+.chip button { display: grid; place-items: center; width: 18px; height: 18px; border: 0; border-radius: 50%; background: transparent; color: inherit; padding: 0; }
+.chip button:hover { background: #fff; }
+
+/* ----- Adjuntar archivos ----- */
+.adjunto { border: 1px dashed #9DB6DE; border-radius: var(--radio-pequeno); padding: 12px; display: grid; gap: 8px; background: #fff; justify-items: start; }
+.adjunto-archivo { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; width: 100%; color: var(--azul); }
+.adjunto-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.adjunto-archivo small { color: var(--texto-suave); white-space: nowrap; }
+.adjunto-quitar { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 50%; background: var(--gris); color: var(--azul); padding: 0; }
+.adjunto-quitar:hover { background: #FDE7EA; color: #B4233F; }
+
+/* ----- Detalles nuevos dentro de la hoja ----- */
+.cv-contacto { word-break: normal; overflow-wrap: anywhere; }
+.cv-contacto li > span { min-width: 0; }
+.cv-idioma { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: baseline; }
+.cv-idioma > span { grid-column: 1; grid-row: 1; }
+.cv-idioma > small { grid-column: 2; grid-row: 1; margin-top: 0; justify-self: end; text-align: right; }
+.cv-idioma > .barra { grid-column: 1 / -1; grid-row: 2; width: 100%; }
+.cv-foto { overflow: hidden; }
+.cv-foto img { width: 100%; height: 100%; object-fit: cover; }
+.cv-placeholder { opacity: 0.4; }
+.cv-vacio-msg { color: var(--texto-suave); font-size: 0.9rem; padding: 20px; border: 1.5px dashed #B9CDE8; border-radius: var(--radio-pequeno); }
+.cv-adjunto { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; font-size: 0.72rem; font-weight: 500; color: var(--acento); }
+.cv-item .cv-adjunto { display: flex; margin: 4px 0 0; }
+.cv-adjunto:hover { text-decoration: underline; }
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 1100px) {
+  .editor-tabs { display: flex; }
+  .editor-cv { grid-template-columns: 1fr; }
+  .editor-previa { position: static; max-height: none; overflow: visible; }
+  .editor-cv[data-vista='editar'] .editor-previa { display: none; }
+  .editor-cv[data-vista='previa'] .editor-form { display: none; }
+}
+@media (max-width: 700px) {
+  .pagina-editor { width: calc(100% - 32px); }
+  .rejilla-campos { grid-template-columns: 1fr; }
+  .editor-acciones .boton { flex: 1 1 auto; }
+}
+
+/* ================= IMPRESIÓN: solo la hoja de vida ================= */
+@media print {
+  .editor-barra, .editor-tabs, .editor-form, .pagina-editor [role='status'] { display: none !important; }
+  .pagina-editor { width: 100%; padding: 0; }
+  .editor-cv { display: block; }
+  .editor-previa { display: block !important; position: static; max-height: none; overflow: visible; }
+  .cv-adjunto { display: none; }
+}
