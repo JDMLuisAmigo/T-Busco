@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { Phone, Mail, MapPin, Link2, User, Settings, Globe, Briefcase, GraduationCap, Award, Users, Paperclip } from 'lucide-react'
 import { niveles } from '../../data/cvModelo'
+import { urlArchivo } from '../../lib/api'
 
 // ---------- Funciones auxiliares ----------
 
@@ -42,7 +43,7 @@ function Seccion({ Icono, titulo, children }) {
 function Adjunto({ archivo }) {
   if (!archivo) return null
   return (
-    <a href={archivo.url} target="_blank" rel="noreferrer" className="cv-adjunto">
+    <a href={urlArchivo(archivo.url)} target="_blank" rel="noreferrer" className="cv-adjunto">
       <Paperclip size={12} aria-hidden="true" /> Ver documento
     </a>
   )
@@ -83,7 +84,7 @@ export default function CvPreview({ cv }) {
       <aside className="cv-lateral">
         <div className="cv-foto">
           {cv.foto ? (
-            <img src={cv.foto.url} alt={`Foto de ${nombre || 'la persona aspirante'}`} />
+            <img src={urlArchivo(cv.foto.url)} alt={`Foto de ${nombre || 'la persona aspirante'}`} />
           ) : (
             <User size={72} aria-hidden="true" />
           )}

@@ -3,7 +3,8 @@ import { useRouter } from 'next/router'
 import { MapPin, Briefcase, DollarSign, FileText, RotateCcw, ChevronDown } from 'lucide-react'
 import SearchBar from '../../components/SearchBar'
 import JobCard from '../../components/JobCard'
-import { jobs, ciudades, jornadas, contratos, categorias } from '../../data/jobs'
+import { ciudades, jornadas, contratos, categorias, normalizarVacante } from '../../data/jobs'
+import { listarVacantesPublicas } from '../../lib/api'
 
 // Un grupo de casillas del panel de filtros (Ubicación, Modalidad, etc.)
 function GrupoFiltro({ titulo, Icono, opciones, seleccionadas, alCambiar, contar }) {
@@ -42,6 +43,21 @@ export default function Search() {
   const [filtros, setFiltros] = useState(filtrosVacios)
   const [orden, setOrden] = useState('relevantes')
 
+  const [vacantes, setVacantes] = useState([])
+  const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState('')
+
+  // Trae las vacantes UNA vez; todo el filtrado de abajo sigue pasando
+  // en el navegador, igual que antes, solo que ahora sobre datos reales.
+  useEffect(() => {
+    let cancelado = false
+    listarVacantesPublicas()
+      .then((lista) => { if (!cancelado) setVacantes(lista.map(normalizarVacante)) })
+      .catch(() => { if (!cancelado) setErrorCarga('No se pudieron cargar las vacantes. Intenta de nuevo más tarde.') })
+      .finally(() => !cancelado && setCargando(false))
+    return () => { cancelado = true }
+  }, [])
+
   // Al cargar la página, router.query llega vacío un instante y luego se llena.
   // Este efecto marca la ciudad en los filtros cuando la URL trae una.
   useEffect(() => {
@@ -72,7 +88,7 @@ export default function Search() {
 
   // useMemo recalcula la lista solo cuando cambian los filtros
   const resultados = useMemo(() => {
-    const lista = jobs.filter((j) => {
+    const lista = vacantes.filter((j) => {
       const t = `${j.titulo} ${j.empresa} ${j.tags.join(' ')}`.toLowerCase()
       if (q && !t.includes(q.toLowerCase())) return false
       if (modalidad && j.lugar !== modalidad) return false
@@ -85,9 +101,9 @@ export default function Search() {
     })
     if (orden === 'salario') lista.sort((a, b) => b.salarioMax - a.salarioMax)
     return lista
-  }, [q, modalidad, categoria, filtros, orden])
+  }, [vacantes, q, modalidad, categoria, filtros, orden])
 
-  const contar = (campo) => (valor) => jobs.filter((j) => j[campo] === valor).length
+  const contar = (campo) => (valor) => vacantes.filter((j) => j[campo] === valor).length
   const nombreCategoria = categorias.find((c) => c.id === categoria)?.nombre
 
   return (
@@ -159,7 +175,11 @@ export default function Search() {
             </select>
           </div>
 
-          {resultados.length === 0 ? (
+          {cargando ? (
+            <p className="vacio">Cargando vacantes…</p>
+          ) : errorCarga ? (
+            <p className="vacio">{errorCarga}</p>
+          ) : resultados.length === 0 ? (
             <p className="vacio">
               No encontramos vacantes con esos filtros. Prueba quitar alguno o busca otro cargo.
             </p>

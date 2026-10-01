@@ -294,3 +294,23 @@ export const cv = {
 
 // Formatea un número como pesos: 2500000 -> "$ 2.500.000"
 export const pesos = (n) => `$ ${n.toLocaleString('es-CO')}`
+
+// El backend no guarda "inicial" ni "color" del logo de una empresa (no
+// tiene sentido pedírselo al reclutador al publicar una vacante): se
+// calculan aquí a partir del nombre. Es determinista: la misma empresa
+// siempre saca el mismo color, sin tener que guardarlo en ningún lado.
+const PALETA_LOGOS = ['#0A2D6B', '#0F1B3D', '#6D4FD8', '#15803D', '#B45309', '#BE123C', '#0E7490']
+
+export const inicialYColor = (empresa) => {
+  const texto = (empresa || '').trim()
+  let hash = 0
+  for (let i = 0; i < texto.length; i++) hash = (hash * 31 + texto.charCodeAt(i)) >>> 0
+  return {
+    inicial: texto ? texto[0].toUpperCase() : '?',
+    color: PALETA_LOGOS[hash % PALETA_LOGOS.length],
+  }
+}
+
+// Completa una vacante que vino del backend con los campos visuales
+// (inicial, color) que JobCard y el detalle ya esperaban.
+export const normalizarVacante = (v) => ({ ...v, ...inicialYColor(v.empresa) })

@@ -5,15 +5,19 @@ import {
   ArrowLeft, Heart, Send, MapPin, Briefcase, DollarSign, Laptop, BadgeCheck, Building2, Users,
   Tag, ShieldCheck, Check, Clock, Home, Star, ClipboardList, FileText, Wallet, Link2, Mail, MessageCircle,
 } from 'lucide-react'
-import { jobs, pesos } from '../../data/jobs'
+import { pesos, normalizarVacante } from '../../data/jobs'
+import { obtenerVacante } from '../../lib/api'
 import { LogoEmpresa } from '../../components/JobCard'
 
 const tabs = ['Descripción', 'Requisitos', 'Beneficios', 'Empresa']
 
 export default function JobDetail() {
   const router = useRouter()
-  const { id } = router.query // en /empleos/3, id vale "3"
-  const job = jobs.find((j) => j.id === Number(id))
+  const { id } = router.query // en /empleos/<uuid>, id trae ese uuid
+
+  const [job, setJob] = useState(null)
+  const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState('')
 
   const [tab, setTab] = useState('Descripción')
   const [guardada, setGuardada] = useState(false)
@@ -24,13 +28,25 @@ export default function JobDetail() {
   const [urlActual, setUrlActual] = useState('')
   useEffect(() => setUrlActual(window.location.href), [id])
 
-  // Mientras Next.js lee la URL, id llega vacío: no mostramos nada todavía
-  if (!router.isReady) return null
+  // Pide la vacante al backend cada vez que el id de la URL esté listo
+  useEffect(() => {
+    if (!router.isReady || !id) return
+    let cancelado = false
+    setCargando(true)
+    obtenerVacante(id)
+      .then((v) => { if (!cancelado) setJob(normalizarVacante(v)) })
+      .catch((e) => { if (!cancelado) setErrorCarga(e.message) })
+      .finally(() => !cancelado && setCargando(false))
+    return () => { cancelado = true }
+  }, [router.isReady, id])
 
-  if (!job) {
+  // Mientras Next.js lee la URL, o mientras se trae la vacante, no se muestra nada todavía
+  if (!router.isReady || cargando) return <p className="contenedor vacio">Cargando…</p>
+
+  if (errorCarga || !job) {
     return (
       <div className="contenedor vacio">
-        <p>No encontramos esta vacante.</p>
+        <p>{errorCarga || 'No encontramos esta vacante.'}</p>
         <Link href="/empleos" className="boton boton-primario">Ver todas las vacantes</Link>
       </div>
     )
@@ -64,7 +80,7 @@ export default function JobDetail() {
               <p className="empresa-verificada">
                 <strong>{job.empresa}</strong> <BadgeCheck size={16} aria-label="Empresa verificada" />
               </p>
-              <p>{job.ciudad} · {job.empleados}</p>
+              <p>{job.ciudad}{job.empleados ? ` · ${job.empleados}` : ''}</p>
             </div>
             <div className="vacante-botones">
               <button
@@ -178,13 +194,13 @@ export default function JobDetail() {
               <LogoEmpresa job={job} size={56} />
               <div>
                 <p className="empresa-verificada"><strong>{job.empresa}</strong> <BadgeCheck size={16} aria-label="Empresa verificada" /></p>
-                <p>{job.sectorEmpresa}</p>
+                {job.sectorEmpresa && <p>{job.sectorEmpresa}</p>}
               </div>
             </header>
             <ul className="lista-iconos">
               <li><MapPin size={16} /> {job.ciudad}</li>
-              <li><Users size={16} /> {job.empleados}</li>
-              <li><Tag size={16} /> {job.tags.join(', ')}</li>
+              {job.empleados && <li><Users size={16} /> {job.empleados}</li>}
+              {job.tags.length > 0 && <li><Tag size={16} /> {job.tags.join(', ')}</li>}
             </ul>
             <button type="button" className="boton boton-contorno boton-ancho" onClick={() => setTab('Empresa')}>
               Ver empresa

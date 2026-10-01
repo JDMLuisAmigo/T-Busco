@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
@@ -5,7 +6,8 @@ import {
 } from 'lucide-react'
 import SearchBar from '../components/SearchBar'
 import JobCard from '../components/JobCard'
-import { categorias, jobs } from '../data/jobs'
+import { categorias, normalizarVacante } from '../data/jobs'
+import { listarVacantesPublicas } from '../lib/api'
 
 // Traduce el texto "icono" de los datos a un componente de icono
 const iconos = {
@@ -22,6 +24,20 @@ const iconos = {
 export default function Home() {
   const router = useRouter()
 
+  const [destacadas, setDestacadas] = useState([])
+  const [cargando, setCargando] = useState(true)
+
+  // Las 4 vacantes activas más recientes (el backend ya las entrega
+  // ordenadas de más nueva a más vieja).
+  useEffect(() => {
+    let cancelado = false
+    listarVacantesPublicas()
+      .then((lista) => { if (!cancelado) setDestacadas(lista.slice(0, 4).map(normalizarVacante)) })
+      .catch(() => { /* si falla, simplemente no se muestran destacadas */ })
+      .finally(() => !cancelado && setCargando(false))
+    return () => { cancelado = true }
+  }, [])
+
   // Al buscar, mandamos al usuario a /empleos con los filtros en la URL
   const buscar = ({ q, ciudad, modalidad }) => {
     const query = {}
@@ -30,8 +46,6 @@ export default function Home() {
     if (modalidad) query.modalidad = modalidad
     router.push({ pathname: '/empleos', query })
   }
-
-  const destacadas = jobs.filter((j) => [6, 2, 7, 8].includes(j.id))
 
   return (
     <>
@@ -65,9 +79,15 @@ export default function Home() {
             Ver todas <ArrowRight size={16} />
           </Link>
         </div>
-        <div className="rejilla-destacadas">
-          {destacadas.map((j) => <JobCard key={j.id} job={j} />)}
-        </div>
+        {cargando ? (
+          <p className="vacio">Cargando vacantes…</p>
+        ) : destacadas.length === 0 ? (
+          <p className="vacio">Todavía no hay vacantes publicadas. ¡Vuelve pronto!</p>
+        ) : (
+          <div className="rejilla-destacadas">
+            {destacadas.map((j) => <JobCard key={j.id} job={j} />)}
+          </div>
+        )}
       </section>
     </>
   )

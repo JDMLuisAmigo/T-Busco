@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Paperclip, FileText, X } from 'lucide-react'
+import { urlArchivo } from '../../lib/api'
 
 const NOMBRES = { 'application/pdf': 'PDF', 'image/jpeg': 'JPG', 'image/png': 'PNG' }
 
@@ -64,7 +65,7 @@ export default function AdjuntoArchivo({
           <FileText size={18} aria-hidden="true" />
           <span className="adjunto-nombre" title={archivo.nombre}>{archivo.nombre}</span>
           <small>{formatoTamano(archivo.tamano)}</small>
-          <a href={archivo.url} target="_blank" rel="noreferrer" className="enlace-boton">Ver</a>
+          <a href={urlArchivo(archivo.url)} target="_blank" rel="noreferrer" className="enlace-boton">Ver</a>
           <button type="button" className="enlace-boton" onClick={abrirSelector}>Cambiar</button>
           <button type="button" className="adjunto-quitar" onClick={quitar} aria-label={`Quitar ${etiqueta}`}>
             <X size={14} />
