@@ -13,6 +13,10 @@ import { CvModule } from './cv/cv.module';
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
       synchronize: true, // SOLO en desarrollo
+      ssl:
+        process.env.NODE_ENV === 'production'
+          ? { rejectUnauthorized: false }
+          : false,
     }),
     AuthModule,
     CvModule,
