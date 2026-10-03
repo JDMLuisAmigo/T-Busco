@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { VacantesModule } from './vacantes/vacantes.module';
+import { PostulacionesModule } from './postulaciones/postulaciones.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { CvModule } from './cv/cv.module';
 
 @Module({
@@ -15,6 +17,8 @@ import { CvModule } from './cv/cv.module';
     AuthModule,
     CvModule,
     VacantesModule,
+    PostulacionesModule,
+    NotificacionesModule,
   ],
 })
 export class AppModule {}

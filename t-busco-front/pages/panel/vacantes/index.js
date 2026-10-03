@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Head from 'next/head'
-import { Plus, Pencil, Trash2, EyeOff, Eye, MapPin, DollarSign } from 'lucide-react'
+import { Plus, Pencil, Trash2, EyeOff, Eye, MapPin, DollarSign, Users } from 'lucide-react'
 import { useRequireRol } from '../../../lib/useRequireRol'
 import { misVacantes, alternarEstadoVacante, eliminarVacante } from '../../../lib/api'
 import { pesos } from '../../../data/jobs'
@@ -76,6 +76,9 @@ export default function MisVacantes() {
                   <p className="dato"><DollarSign size={14} aria-hidden="true" /> {pesos(v.salarioMin)} - {pesos(v.salarioMax)}</p>
                 </div>
                 <div className="fila-panel-acciones">
+                  <Link href={`/panel/vacantes/${v.id}/candidatos`} className="boton boton-contorno boton-pequeno">
+                    <Users size={14} aria-hidden="true" /> Ver candidatos
+                  </Link>
                   <Link href={`/panel/vacantes/${v.id}/editar`} className="boton boton-contorno boton-pequeno">
                     <Pencil size={14} aria-hidden="true" /> Editar
                   </Link>

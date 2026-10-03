@@ -140,3 +140,50 @@ export async function eliminarVacante(id) {
   const res = await fetch(`${BASE}/vacantes/${id}`, { method: 'DELETE', headers: encabezadosAutenticados() })
   return leerRespuesta(res, 'No se pudo eliminar la vacante.')
 }
+
+// ---------------- Postulaciones ----------------
+
+export async function postularA(vacanteId) {
+  const res = await fetch(`${BASE}/postulaciones`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...encabezadosAutenticados() },
+    body: JSON.stringify({ vacanteId }),
+  })
+  return leerRespuesta(res, 'No se pudo enviar tu postulación.')
+}
+
+export async function misPostulaciones() {
+  const res = await fetch(`${BASE}/postulaciones/mias`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener tus postulaciones.')
+}
+
+export async function postulacionesDeVacante(vacanteId) {
+  const res = await fetch(`${BASE}/postulaciones/vacante/${vacanteId}`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener los candidatos.')
+}
+
+export async function actualizarPostulacion(id, datos) {
+  const res = await fetch(`${BASE}/postulaciones/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...encabezadosAutenticados() },
+    body: JSON.stringify(datos),
+  })
+  return leerRespuesta(res, 'No se pudo actualizar la postulación.')
+}
+
+// ---------------- Notificaciones ----------------
+
+export async function listarNotificaciones() {
+  const res = await fetch(`${BASE}/notificaciones`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener tus notificaciones.')
+}
+
+export async function marcarNotificacionLeida(id) {
+  const res = await fetch(`${BASE}/notificaciones/${id}/leida`, { method: 'PUT', headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudo marcar como leída.')
+}
+
+export async function marcarTodasNotificacionesLeidas() {
+  const res = await fetch(`${BASE}/notificaciones/leer-todas`, { method: 'PUT', headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudo marcar todas como leídas.')
+}

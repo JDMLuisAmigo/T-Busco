@@ -3,10 +3,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
   ArrowLeft, Heart, Send, MapPin, Briefcase, DollarSign, Laptop, BadgeCheck, Building2, Users,
-  Tag, ShieldCheck, Check, Clock, Home, Star, ClipboardList, FileText, Wallet, Link2, Mail, MessageCircle,
+  Tag, ShieldCheck, Check, Clock, Home, Star, ClipboardList, FileText, Wallet, Link2, Mail, MessageCircle, LogIn,
 } from 'lucide-react'
 import { pesos, normalizarVacante } from '../../data/jobs'
-import { obtenerVacante } from '../../lib/api'
+import { obtenerVacante, postularA, misPostulaciones } from '../../lib/api'
+import { useAuth } from '../../lib/AuthContext'
 import { LogoEmpresa } from '../../components/JobCard'
 
 const tabs = ['Descripción', 'Requisitos', 'Beneficios', 'Empresa']
@@ -14,6 +15,7 @@ const tabs = ['Descripción', 'Requisitos', 'Beneficios', 'Empresa']
 export default function JobDetail() {
   const router = useRouter()
   const { id } = router.query // en /empleos/<uuid>, id trae ese uuid
+  const { usuario } = useAuth()
 
   const [job, setJob] = useState(null)
   const [cargando, setCargando] = useState(true)
@@ -22,11 +24,24 @@ export default function JobDetail() {
   const [tab, setTab] = useState('Descripción')
   const [guardada, setGuardada] = useState(false)
   const [postulado, setPostulado] = useState(false)
+  const [enviandoPostulacion, setEnviandoPostulacion] = useState(false)
+  const [errorPostulacion, setErrorPostulacion] = useState('')
   const [copiado, setCopiado] = useState(false)
 
   // window solo existe en el navegador (no en el servidor), por eso se lee dentro de un efecto
   const [urlActual, setUrlActual] = useState('')
   useEffect(() => setUrlActual(window.location.href), [id])
+
+  // Si ya es aspirante y ya tiene la vacante cargada, revisa si ya se había
+  // postulado antes (para que el botón salga correcto al volver a esta página)
+  useEffect(() => {
+    if (!job || !usuario || usuario.rol !== 'aspirante') return
+    let cancelado = false
+    misPostulaciones()
+      .then((lista) => { if (!cancelado && lista.some((p) => p.vacanteId === job.id)) setPostulado(true) })
+      .catch(() => { /* si falla, se deja el botón normal; no es crítico */ })
+    return () => { cancelado = true }
+  }, [job, usuario])
 
   // Pide la vacante al backend cada vez que el id de la URL esté listo
   useEffect(() => {
@@ -62,6 +77,19 @@ export default function JobDetail() {
     }
   }
 
+  const postularme = async () => {
+    setErrorPostulacion('')
+    setEnviandoPostulacion(true)
+    try {
+      await postularA(job.id)
+      setPostulado(true)
+    } catch (err) {
+      setErrorPostulacion(err.message)
+    } finally {
+      setEnviandoPostulacion(false)
+    }
+  }
+
   const textoCompartir = encodeURIComponent(`${job.titulo} en ${job.empresa}: ${urlActual}`)
 
   return (
@@ -91,15 +119,25 @@ export default function JobDetail() {
               >
                 <Heart size={16} fill={guardada ? 'currentColor' : 'none'} /> {guardada ? 'Guardada' : 'Guardar'}
               </button>
-              <button
-                type="button"
-                className="boton boton-primario"
-                onClick={() => setPostulado(true)}
-                disabled={postulado}
-              >
-                {postulado ? <><Check size={16} /> Postulación enviada</> : <><Send size={16} /> Postularme</>}
-              </button>
+
+              {!usuario ? (
+                <Link href="/login" className="boton boton-primario">
+                  <LogIn size={16} /> Inicia sesión para postularte
+                </Link>
+              ) : usuario.rol === 'aspirante' ? (
+                <button
+                  type="button"
+                  className="boton boton-primario"
+                  onClick={postularme}
+                  disabled={postulado || enviandoPostulacion}
+                >
+                  {postulado
+                    ? <><Check size={16} /> Postulación enviada</>
+                    : <><Send size={16} /> {enviandoPostulacion ? 'Enviando…' : 'Postularme'}</>}
+                </button>
+              ) : null}
             </div>
+            {errorPostulacion && <p className="aviso aviso-error" role="alert">{errorPostulacion}</p>}
           </header>
 
           <h1>{job.titulo}</h1>

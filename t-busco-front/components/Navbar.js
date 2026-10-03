@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { Search, LogOut, User } from 'lucide-react'
 import Logo from './Logo'
 import { useAuth } from '../lib/AuthContext'
+import NotificacionesBell from './NotificacionesBell'
 
 export default function Navbar() {
   const router = useRouter()
@@ -28,7 +29,14 @@ export default function Navbar() {
 
         <nav className="navbar-links" aria-label="Principal">
           <Link href="/empleos" className={activo('/empleos')}>Empleos</Link>
-          <Link href="/hoja-de-vida" className={activo('/hoja-de-vida')}>Hoja de vida</Link>
+          {/* Un reclutador no necesita hoja de vida; a un aspirante o a quien
+              todavía no inició sesión sí se le sigue mostrando el enlace. */}
+          {usuario?.rol !== 'reclutador' && (
+            <Link href="/hoja-de-vida" className={activo('/hoja-de-vida')}>Hoja de vida</Link>
+          )}
+          {usuario?.rol === 'aspirante' && (
+            <Link href="/postulaciones" className={activo('/postulaciones')}>Mis postulaciones</Link>
+          )}
           {usuario?.rol === 'reclutador' && (
             <Link href="/panel/vacantes" className={activo('/panel/vacantes')}>Mis vacantes</Link>
           )}
@@ -40,6 +48,7 @@ export default function Navbar() {
           <Link href="/empleos" className="icono-boton" aria-label="Buscar empleos">
             <Search size={18} />
           </Link>
+          <NotificacionesBell />
 
           {/* Mientras se confirma si hay sesión, no se muestra nada para
               evitar el parpadeo "Inicia sesión" -> "Hola, Ana" */}

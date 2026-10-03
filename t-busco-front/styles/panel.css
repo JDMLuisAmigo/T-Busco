@@ -16,7 +16,27 @@
 
 .formulario-vacante { display: grid; gap: 20px; margin-top: 10px; }
 
+/* Falta este color de etiqueta (las demás ya existían en components.css) */
+.etiqueta-roja { background: #FDE7EA; color: #A3193A; }
+
+.enlace-boton-flecha {
+  display: inline-flex; align-items: center; gap: 8px; background: none; border: 0; padding: 0;
+  font-size: 0.85rem; font-weight: 500; color: var(--azul); margin-bottom: 16px;
+}
+.enlace-boton-flecha:hover { text-decoration: underline; }
+
+/* ----- Candidatos (panel del reclutador) ----- */
+.fila-candidato { flex-direction: column; align-items: stretch; }
+.candidato-resumen { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; width: 100%; }
+.candidato-detalle { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--borde); display: grid; gap: 20px; }
+.candidato-cv { border: 1px solid var(--borde); border-radius: var(--radio); overflow: auto; max-height: 70vh; }
+.candidato-cv .cv { max-width: none; box-shadow: none; border: 0; }
+.candidato-evaluacion { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: end; }
+.candidato-evaluacion .boton { grid-column: span 1; justify-self: start; }
+.candidato-mensaje { font-size: 0.8rem; color: var(--texto-suave); align-self: center; }
+
 @media (max-width: 700px) {
   .fila-panel { flex-direction: column; align-items: stretch; }
   .fila-panel-acciones { justify-content: flex-start; }
+  .candidato-evaluacion { grid-template-columns: 1fr; }
 }
