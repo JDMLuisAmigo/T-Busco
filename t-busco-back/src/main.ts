@@ -12,7 +12,7 @@ async function bootstrap() {
   const origenesPermitidos = [
     'http://localhost:3000',
     process.env.FRONTEND_URL,
-  ].filter(Boolean);
+  ].filter((origen): origen is string => Boolean(origen));
   app.enableCors({ origin: origenesPermitidos });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
