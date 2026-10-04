@@ -7,11 +7,14 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Acepta peticiones de tu máquina local Y del dominio real una vez
-  // que despliegues el frontend (FRONTEND_URL se configura en Railway).
+  // El header "Origin" que manda el navegador NUNCA trae barra al final;
+  // si FRONTEND_URL sí la tiene (por un espacio de más al pegarla en
+  // Railway), nunca coincidiría y CORS rechazaría todo, aunque la URL
+  // "se vea" igual a simple vista.
+  const limpiar = (url?: string) => url?.replace(/\/+$/, '');
   const origenesPermitidos = [
     'http://localhost:3000',
-    process.env.FRONTEND_URL,
+    limpiar(process.env.FRONTEND_URL),
   ].filter((origen): origen is string => Boolean(origen));
   app.enableCors({ origin: origenesPermitidos });
 
