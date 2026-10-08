@@ -13,12 +13,18 @@ export class Usuario {
   @Column({ unique: true })
   correo: string;
 
-  // NUNCA se guarda la contraseña tal cual, solo su hash (ver auth.service.ts)
+  // NUNCA se guarda la contraseña tal cual, solo su hash
   @Column()
   contrasenaHash: string;
 
   @Column({ type: 'varchar', default: 'aspirante' })
   rol: Rol;
+
+  // Un administrador puede desactivar una cuenta sin borrarla: conserva
+  // su historial (vacantes publicadas, postulaciones hechas, etc.) pero
+  // ya no puede iniciar sesión.
+  @Column({ default: true })
+  activo: boolean;
 
   @CreateDateColumn()
   creadoEn: Date;

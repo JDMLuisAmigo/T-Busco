@@ -1,37 +1,30 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Search, LogOut, User } from 'lucide-react'
-import Logo from './Logo'
+import { Search, LogOut, User, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import NotificacionesBell from './NotificacionesBell'
 
 export default function Navbar() {
-  const router = useRouter()
+  const { pathname } = useRouter()
   const { usuario, cargando, cerrarSesion } = useAuth()
 
-  const activo = (ruta) => (router.pathname.startsWith(ruta) ? 'active' : '')
+  const activo = (ruta) => (pathname.startsWith(ruta) ? 'active' : '')
 
-  // Ojo: aquí NO se navega a "/" después de cerrar sesión.
-  // Si la persona está en una página protegida (como /hoja-de-vida), esa
-  // página ya tiene su propia redirección a /login cuando detecta que no
-  // hay usuario. Si además este botón también navegara, competirían dos
-  // redirecciones a la vez y el resultado sería impredecible. En una
-  // página pública, simplemente no hace falta navegar a ningún lado:
-  // solo cambia lo que muestra el navbar.
-  const salir = () => {
-    cerrarSesion()
-  }
+  // Ojo: NO navega por su cuenta. Si está en una página protegida, esa
+  // página ya detecta que no hay usuario y redirige ella misma; si está
+  // en una pública, no hace falta navegar a ningún lado.
+  const salir = () => { cerrarSesion() }
 
   return (
     <header className="navbar">
       <div className="contenedor navbar-interior">
-        <Logo />
+        <Link href="/" className="logo">t-<span className="logo-b">B</span>usco</Link>
 
         <nav className="navbar-links" aria-label="Principal">
           <Link href="/empleos" className={activo('/empleos')}>Empleos</Link>
-          {/* Un reclutador no necesita hoja de vida; a un aspirante o a quien
-              todavía no inició sesión sí se le sigue mostrando el enlace. */}
-          {usuario?.rol !== 'reclutador' && (
+
+          {/* Un reclutador o un administrador no necesitan hoja de vida */}
+          {(!usuario || usuario.rol === 'aspirante') && (
             <Link href="/hoja-de-vida" className={activo('/hoja-de-vida')}>Hoja de vida</Link>
           )}
           {usuario?.rol === 'aspirante' && (
@@ -39,6 +32,9 @@ export default function Navbar() {
           )}
           {usuario?.rol === 'reclutador' && (
             <Link href="/panel/vacantes" className={activo('/panel/vacantes')}>Mis vacantes</Link>
+          )}
+          {usuario?.rol === 'administrador' && (
+            <Link href="/panel/admin" className={activo('/panel/admin')}>Administración</Link>
           )}
           <a href="#empresas">Empresas</a>
           <a href="#recursos">Recursos</a>
@@ -49,9 +45,6 @@ export default function Navbar() {
             <Search size={18} />
           </Link>
           <NotificacionesBell />
-
-          {/* Mientras se confirma si hay sesión, no se muestra nada para
-              evitar el parpadeo "Inicia sesión" -> "Hola, Ana" */}
           {!cargando && (
             usuario ? (
               <>

@@ -1,24 +1,20 @@
 // Todas las llamadas al backend viven aquí. Si algo de la API cambia
 // (la URL, el nombre de una ruta), solo se toca este archivo.
 
+// .replace(/\/+$/, '') quita cualquier barra final, sin importar si
+// NEXT_PUBLIC_API_URL se escribió con ella o sin ella en Vercel.
+// Sin esto, una URL con barra final produce rutas con "//" duplicada.
 const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/+$/, '')
 const CLAVE_TOKEN = 'tbusco-token'
 
-// Lee el token guardado por AuthContext. Vive aquí y no en un import
-// circular con AuthContext.js: este archivo solo necesita LEER el token,
-// no manejar la sesión completa.
 const leerToken = () => {
   try { return localStorage.getItem(CLAVE_TOKEN) } catch { return null }
 }
-
-// Cabeceras con el token, para las rutas que exigen sesión iniciada
 const encabezadosAutenticados = () => {
   const token = leerToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-// Interpreta la respuesta de una llamada; si el backend respondió con un
-// error, intenta leer su mensaje (nuestros DTO y excepciones lo incluyen)
 async function leerRespuesta(res, mensajePorDefecto) {
   if (res.ok) return res.json()
   const cuerpo = await res.json().catch(() => null)
@@ -47,8 +43,6 @@ export async function iniciarSesion({ correo, contrasena }) {
 }
 
 // ---------------- Hoja de vida ----------------
-// Ya no se usa un id fijo en la URL: el backend identifica de quién es
-// el CV por el token que se manda en el header Authorization.
 
 export async function obtenerCv() {
   const res = await fetch(`${BASE}/cv`, { headers: encabezadosAutenticados() })
@@ -70,11 +64,7 @@ export async function guardarCv(datos) {
 export async function subirArchivo(file) {
   const form = new FormData()
   form.append('archivo', file)
-  const res = await fetch(`${BASE}/cv/archivos`, {
-    method: 'POST',
-    headers: encabezadosAutenticados(), // OJO: NO pongas 'Content-Type' a mano con FormData;
-    body: form,                          // el navegador arma el que corresponde con el "boundary"
-  })
+  const res = await fetch(`${BASE}/cv/archivos`, { method: 'POST', headers: encabezadosAutenticados(), body: form })
   if (!res.ok) {
     const cuerpo = await res.json().catch(() => null)
     throw new Error(cuerpo?.message || 'No se pudo subir el archivo.')
@@ -82,9 +72,6 @@ export async function subirArchivo(file) {
   return res.json()
 }
 
-// El backend devuelve rutas relativas ("/uploads/cv/archivo.pdf").
-// Una vista previa que el usuario acaba de adjuntar (sin guardar todavía)
-// sigue siendo un blob: local del navegador; esta función deja cada una tal cual la necesita.
 export function urlArchivo(ruta) {
   if (!ruta) return ''
   if (ruta.startsWith('blob:') || ruta.startsWith('http')) return ruta
@@ -93,17 +80,9 @@ export function urlArchivo(ruta) {
 
 // ---------------- Vacantes ----------------
 
-// Pública: sin token. La usan el inicio y el buscador de empleos.
-// El backend ya solo devuelve las vacantes con estado "activa".
 export async function listarVacantesPublicas() {
   const res = await fetch(`${BASE}/vacantes`)
   if (!res.ok) throw new Error('No se pudieron cargar las vacantes.')
-  return res.json()
-}
-
-export async function misVacantes() {
-  const res = await fetch(`${BASE}/vacantes/mias`, { headers: encabezadosAutenticados() })
-  if (!res.ok) throw new Error('No se pudieron obtener tus vacantes.')
   return res.json()
 }
 
@@ -111,6 +90,11 @@ export async function obtenerVacante(id) {
   const res = await fetch(`${BASE}/vacantes/${id}`)
   if (!res.ok) throw new Error('Esta vacante no existe.')
   return res.json()
+}
+
+export async function misVacantes() {
+  const res = await fetch(`${BASE}/vacantes/mias`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener tus vacantes.')
 }
 
 export async function crearVacante(datos) {
@@ -186,4 +170,45 @@ export async function marcarNotificacionLeida(id) {
 export async function marcarTodasNotificacionesLeidas() {
   const res = await fetch(`${BASE}/notificaciones/leer-todas`, { method: 'PUT', headers: encabezadosAutenticados() })
   return leerRespuesta(res, 'No se pudo marcar todas como leídas.')
+}
+
+// ---------------- Administración ----------------
+
+export async function obtenerResumenAdmin() {
+  const res = await fetch(`${BASE}/admin/resumen`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudo obtener el resumen.')
+}
+
+export async function listarUsuariosAdmin() {
+  const res = await fetch(`${BASE}/admin/usuarios`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener los usuarios.')
+}
+
+export async function cambiarRolUsuario(id, rol) {
+  const res = await fetch(`${BASE}/admin/usuarios/${id}/rol`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...encabezadosAutenticados() },
+    body: JSON.stringify({ rol }),
+  })
+  return leerRespuesta(res, 'No se pudo cambiar el rol.')
+}
+
+export async function alternarActivoUsuario(id) {
+  const res = await fetch(`${BASE}/admin/usuarios/${id}/estado`, { method: 'PUT', headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudo cambiar el estado del usuario.')
+}
+
+export async function listarVacantesAdmin() {
+  const res = await fetch(`${BASE}/admin/vacantes`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener las vacantes.')
+}
+
+export async function alternarEstadoVacanteAdmin(id) {
+  const res = await fetch(`${BASE}/admin/vacantes/${id}/estado`, { method: 'PUT', headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudo cambiar el estado de la vacante.')
+}
+
+export async function eliminarVacanteAdmin(id) {
+  const res = await fetch(`${BASE}/admin/vacantes/${id}`, { method: 'DELETE', headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudo eliminar la vacante.')
 }

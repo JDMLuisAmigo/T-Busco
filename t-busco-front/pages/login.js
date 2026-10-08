@@ -20,7 +20,9 @@ export default function Login() {
     setEnviando(true)
     try {
       const usuario = await iniciarSesion({ correo: correo.trim(), contrasena })
-      router.push(usuario.rol === 'reclutador' ? '/panel/vacantes' : '/hoja-de-vida')
+      if (usuario.rol === 'reclutador') router.push('/panel/vacantes')
+      else if (usuario.rol === 'administrador') router.push('/panel/admin')
+      else router.push('/hoja-de-vida')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -37,16 +39,10 @@ export default function Login() {
           <p className="nota">Ingresa para ver y editar tu hoja de vida.</p>
 
           <Campo etiqueta="Correo electrónico" ancho="completo">
-            <input
-              type="email" required autoComplete="email"
-              value={correo} onChange={(e) => setCorreo(e.target.value)}
-            />
+            <input type="email" required autoComplete="email" value={correo} onChange={(e) => setCorreo(e.target.value)} />
           </Campo>
           <Campo etiqueta="Contraseña" ancho="completo">
-            <input
-              type="password" required autoComplete="current-password"
-              value={contrasena} onChange={(e) => setContrasena(e.target.value)}
-            />
+            <input type="password" required autoComplete="current-password" value={contrasena} onChange={(e) => setContrasena(e.target.value)} />
           </Campo>
 
           {error && <p className="aviso aviso-error" role="alert">{error}</p>}

@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { VacantesModule } from './vacantes/vacantes.module';
 import { PostulacionesModule } from './postulaciones/postulaciones.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { AdminModule } from './admin/admin.module';
 import { CvModule } from './cv/cv.module';
 
 @Module({
@@ -23,6 +24,7 @@ import { CvModule } from './cv/cv.module';
     VacantesModule,
     PostulacionesModule,
     NotificacionesModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
