@@ -2,24 +2,23 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from './AuthContext'
 
-// Protege una página: si no hay sesión, manda a /login; si hay sesión
-// pero el rol no es el requerido, manda al inicio. Se usa igual que
-// useAuth(), pero además hace la redirección por ti.
-//
-// Uso:  const { usuario, cargando } = useRequireRol('reclutador')
-//       if (cargando || !usuario) return <p>Cargando…</p>
-export function useRequireRol(rolRequerido) {
+// Exige sesión iniciada Y uno de los roles permitidos. Acepta un solo
+// rol ("reclutador") o una lista (["tecnico", "administrador"]) para
+// páginas que, como el panel técnico, comparten acceso de lectura con
+// más de un rol (igual que ya hace el backend en admin.controller.ts).
+// Sin sesión -> /login. Con sesión pero rol no autorizado -> /inicio.
+export function useRequireRol(rolesPermitidos) {
   const router = useRouter()
   const { usuario, cargando } = useAuth()
+  const roles = Array.isArray(rolesPermitidos) ? rolesPermitidos : [rolesPermitidos]
 
   useEffect(() => {
     if (cargando) return
     if (!usuario) { router.replace('/login'); return }
-    if (rolRequerido && usuario.rol !== rolRequerido) router.replace('/')
-  }, [cargando, usuario, rolRequerido, router])
+    if (!roles.includes(usuario.rol)) { router.replace('/') }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargando, usuario, router, rolesPermitidos])
 
-  // Mientras cargando sea true, o si el rol no coincide, el llamador no
-  // debe mostrar el contenido protegido (evita el parpadeo antes de redirigir).
-  const autorizado = !cargando && usuario && (!rolRequerido || usuario.rol === rolRequerido)
-  return { usuario: autorizado ? usuario : null, cargando: cargando || !autorizado }
+  const autorizado = !cargando && !!usuario && roles.includes(usuario.rol)
+  return { usuario: autorizado ? usuario : null, cargando: cargando || (!!usuario && !autorizado) }
 }

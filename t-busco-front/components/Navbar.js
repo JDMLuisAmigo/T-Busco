@@ -36,6 +36,9 @@ export default function Navbar() {
           {usuario?.rol === 'administrador' && (
             <Link href="/panel/admin" className={activo('/panel/admin')}>Administración</Link>
           )}
+          {usuario?.rol === 'tecnico' && (
+            <Link href="/panel/tecnico" className={activo('/panel/tecnico')}>Panel técnico</Link>
+          )}
           <a href="#empresas">Empresas</a>
           <a href="#recursos">Recursos</a>
         </nav>

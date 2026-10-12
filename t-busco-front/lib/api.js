@@ -208,6 +208,11 @@ export async function alternarEstadoVacanteAdmin(id) {
   return leerRespuesta(res, 'No se pudo cambiar el estado de la vacante.')
 }
 
+export async function listarPostulacionesAdmin() {
+  const res = await fetch(`${BASE}/admin/postulaciones`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener las postulaciones.')
+}
+
 export async function eliminarVacanteAdmin(id) {
   const res = await fetch(`${BASE}/admin/vacantes/${id}`, { method: 'DELETE', headers: encabezadosAutenticados() })
   return leerRespuesta(res, 'No se pudo eliminar la vacante.')

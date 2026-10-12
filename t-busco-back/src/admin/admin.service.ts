@@ -47,6 +47,14 @@ export class AdminService {
     return this.vacantes.find({ order: { creadaEn: 'DESC' } });
   }
 
+  // Solo lectura: la usa también el rol "tecnico" para verificar que el
+  // flujo de postulaciones (incluida la evaluación del reclutador)
+  // funciona de punta a punta, sin tener que entrar con la cuenta de
+  // cada reclutador para verlo.
+  listarPostulaciones() {
+    return this.postulaciones.find({ order: { creadaEn: 'DESC' } });
+  }
+
   async alternarEstadoVacante(id: string) {
     const vacante = await this.vacantes.findOne({ where: { id } });
     if (!vacante) throw new NotFoundException('Esa vacante no existe.');

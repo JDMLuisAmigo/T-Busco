@@ -7,7 +7,7 @@ import {
   listarVacantesAdmin, alternarEstadoVacanteAdmin, eliminarVacanteAdmin,
 } from '../../../lib/api'
 
-const ROLES = ['aspirante', 'reclutador', 'administrador']
+const ROLES = ['aspirante', 'reclutador', 'administrador', 'tecnico']
 
 function TarjetaResumen({ Icono, numero, etiqueta }) {
   return (

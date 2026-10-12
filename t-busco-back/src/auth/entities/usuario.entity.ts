@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
-export type Rol = 'aspirante' | 'reclutador' | 'administrador';
+export type Rol = 'aspirante' | 'reclutador' | 'administrador' | 'tecnico';
 
 @Entity('usuarios')
 export class Usuario {

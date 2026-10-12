@@ -22,6 +22,7 @@ export default function Login() {
       const usuario = await iniciarSesion({ correo: correo.trim(), contrasena })
       if (usuario.rol === 'reclutador') router.push('/panel/vacantes')
       else if (usuario.rol === 'administrador') router.push('/panel/admin')
+      else if (usuario.rol === 'tecnico') router.push('/panel/tecnico')
       else router.push('/hoja-de-vida')
     } catch (err) {
       setError(err.message)
