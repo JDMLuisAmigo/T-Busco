@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { VacantesModule } from './vacantes/vacantes.module';
 import { PostulacionesModule } from './postulaciones/postulaciones.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { CandidatosModule } from './candidatos/candidatos.module';
 import { AdminModule } from './admin/admin.module';
 import { CvModule } from './cv/cv.module';
 
@@ -25,6 +26,7 @@ import { CvModule } from './cv/cv.module';
     PostulacionesModule,
     NotificacionesModule,
     AdminModule,
+    CandidatosModule,
   ],
 })
 export class AppModule {}

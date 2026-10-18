@@ -125,6 +125,27 @@ export async function eliminarVacante(id) {
   return leerRespuesta(res, 'No se pudo eliminar la vacante.')
 }
 
+// ---------------- Candidatos (búsqueda del reclutador) ----------------
+
+export async function buscarCandidatos(q) {
+  const res = await fetch(`${BASE}/candidatos?q=${encodeURIComponent(q || '')}`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron buscar candidatos.')
+}
+
+export async function misInvitacionesReclutador() {
+  const res = await fetch(`${BASE}/candidatos/mis-invitaciones`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener tus invitaciones.')
+}
+
+export async function invitarCandidato(vacanteId, aspiranteId) {
+  const res = await fetch(`${BASE}/candidatos/invitar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...encabezadosAutenticados() },
+    body: JSON.stringify({ vacanteId, aspiranteId }),
+  })
+  return leerRespuesta(res, 'No se pudo enviar la invitación.')
+}
+
 // ---------------- Postulaciones ----------------
 
 export async function postularA(vacanteId) {

@@ -33,6 +33,9 @@ export default function Navbar() {
           {usuario?.rol === 'reclutador' && (
             <Link href="/panel/vacantes" className={activo('/panel/vacantes')}>Mis vacantes</Link>
           )}
+          {usuario?.rol === 'reclutador' && (
+            <Link href="/panel/candidatos" className={activo('/panel/candidatos')}>Buscar candidatos</Link>
+          )}
           {usuario?.rol === 'administrador' && (
             <Link href="/panel/admin" className={activo('/panel/admin')}>Administración</Link>
           )}
