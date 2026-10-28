@@ -17,5 +17,6 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
   ],
   controllers: [CandidatosController],
   providers: [CandidatosService],
+  exports: [CandidatosService], // para que IaModule pueda reutilizar la búsqueda de candidatos
 })
 export class CandidatosModule {}

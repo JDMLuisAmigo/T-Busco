@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import Head from 'next/head'
-import { Search, Send, Check, MapPin, Briefcase } from 'lucide-react'
+import { Search, Send, Check, MapPin, Briefcase, Sparkles } from 'lucide-react'
 import { useRequireRol } from '../../lib/useRequireRol'
-import { buscarCandidatos, misVacantes, misInvitacionesReclutador, invitarCandidato } from '../../lib/api'
+import { buscarCandidatos, misVacantes, misInvitacionesReclutador, invitarCandidato, obtenerCandidatosSugeridos } from '../../lib/api'
 
 function FilaCandidato({ candidato, vacanteSeleccionada, yaInvitado, onInvitar }) {
   const [enviando, setEnviando] = useState(false)
@@ -11,13 +11,9 @@ function FilaCandidato({ candidato, vacanteSeleccionada, yaInvitado, onInvitar }
   const invitar = async () => {
     setEnviando(true)
     setError('')
-    try {
-      await onInvitar(candidato.aspiranteId)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setEnviando(false)
-    }
+    try { await onInvitar(candidato.aspiranteId) }
+    catch (e) { setError(e.message) }
+    finally { setEnviando(false) }
   }
 
   return (
@@ -33,20 +29,14 @@ function FilaCandidato({ candidato, vacanteSeleccionada, yaInvitado, onInvitar }
             {candidato.habilidades.slice(0, 6).map((h) => <span key={h} className="etiqueta etiqueta-azul">{h}</span>)}
           </div>
         )}
-        {candidato.experiencia.length > 0 && (
-          <p className="dato">
-            {candidato.experiencia.map((e, i) => (
-              <span key={i}>{e.cargo}{e.empresa ? ` en ${e.empresa}` : ''}{i < candidato.experiencia.length - 1 ? ' · ' : ''}</span>
-            ))}
-          </p>
+        {candidato.razon && (
+          <p className="ia-razon"><Sparkles size={14} aria-hidden="true" /> {candidato.razon}</p>
         )}
         {error && <p className="aviso aviso-error">{error}</p>}
       </div>
       <div className="fila-panel-acciones">
         <button
-          type="button"
-          className="boton boton-primario boton-pequeno"
-          onClick={invitar}
+          type="button" className="boton boton-primario boton-pequeno" onClick={invitar}
           disabled={!vacanteSeleccionada || enviando || yaInvitado}
         >
           {yaInvitado
@@ -69,7 +59,10 @@ export default function BuscarCandidatos() {
   const [cargandoLista, setCargandoLista] = useState(true)
   const [error, setError] = useState('')
 
-  // Vacantes propias (para elegir a cuál invitar) + invitaciones ya enviadas
+  const [sugerencias, setSugerencias] = useState(null) // null = todavía no se pidió
+  const [cargandoSugerencias, setCargandoSugerencias] = useState(false)
+  const [errorSugerencias, setErrorSugerencias] = useState('')
+
   useEffect(() => {
     if (!usuario) return
     Promise.all([misVacantes(), misInvitacionesReclutador()])
@@ -82,26 +75,36 @@ export default function BuscarCandidatos() {
       .catch((e) => setError(e.message))
   }, [usuario])
 
-  // Búsqueda: se repite cada vez que cambia el texto (sin filtro = todos los candidatos)
   useEffect(() => {
     if (!usuario) return
     setCargandoLista(true)
     const temporizador = setTimeout(() => {
-      buscarCandidatos(q)
-        .then(setCandidatos)
-        .catch((e) => setError(e.message))
-        .finally(() => setCargandoLista(false))
-    }, 300) // pequeña espera para no buscar en cada tecla
+      buscarCandidatos(q).then(setCandidatos).catch((e) => setError(e.message)).finally(() => setCargandoLista(false))
+    }, 300)
     return () => clearTimeout(temporizador)
   }, [usuario, q])
 
-  const invitadosAEstaVacante = new Set(
-    invitaciones.filter((i) => i.vacanteId === vacanteId).map((i) => i.aspiranteId)
-  )
+  // Al cambiar de vacante, las sugerencias de IA ya no aplican: hay que pedirlas de nuevo
+  useEffect(() => { setSugerencias(null) }, [vacanteId])
+
+  const invitadosAEstaVacante = new Set(invitaciones.filter((i) => i.vacanteId === vacanteId).map((i) => i.aspiranteId))
 
   const onInvitar = async (aspiranteId) => {
     const nueva = await invitarCandidato(vacanteId, aspiranteId)
     setInvitaciones((inv) => [...inv, nueva])
+  }
+
+  const pedirSugerencias = async () => {
+    setCargandoSugerencias(true)
+    setErrorSugerencias('')
+    try {
+      const resultado = await obtenerCandidatosSugeridos(vacanteId)
+      setSugerencias(resultado)
+    } catch (e) {
+      setErrorSugerencias(e.message)
+    } finally {
+      setCargandoSugerencias(false)
+    }
   }
 
   if (cargando || !usuario) return <p className="contenedor vacio">Cargando…</p>
@@ -128,9 +131,7 @@ export default function BuscarCandidatos() {
                 <span className="campo-etiqueta">Invitar a la vacante</span>
                 <select value={vacanteId} onChange={(e) => setVacanteId(e.target.value)}>
                   {vacantes.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.titulo} {v.estado === 'cerrada' ? '(cerrada)' : ''}
-                    </option>
+                    <option key={v.id} value={v.id}>{v.titulo} {v.estado === 'cerrada' ? '(cerrada)' : ''}</option>
                   ))}
                 </select>
               </label>
@@ -142,25 +143,49 @@ export default function BuscarCandidatos() {
                   <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ej: diseñador, Figma, Medellín…" />
                 </div>
               </label>
+
+              <button type="button" className="boton boton-contorno" onClick={pedirSugerencias} disabled={cargandoSugerencias}>
+                <Sparkles size={16} aria-hidden="true" /> {cargandoSugerencias ? 'Pensando…' : 'Sugerir candidatos con IA'}
+              </button>
             </div>
 
-            {cargandoLista ? (
-              <p className="aviso">Buscando…</p>
-            ) : candidatos.length === 0 ? (
-              <p className="vacio">No hay candidatos que coincidan con esa búsqueda.</p>
-            ) : (
-              <ul className="lista-panel">
-                {candidatos.map((c) => (
-                  <FilaCandidato
-                    key={c.aspiranteId}
-                    candidato={c}
-                    vacanteSeleccionada={vacanteId}
-                    yaInvitado={invitadosAEstaVacante.has(c.aspiranteId)}
-                    onInvitar={onInvitar}
-                  />
-                ))}
-              </ul>
+            {errorSugerencias && <p className="aviso aviso-error" role="alert">{errorSugerencias}</p>}
+
+            {sugerencias !== null && (
+              <section className="ia-seccion">
+                <h2><Sparkles size={18} aria-hidden="true" /> Sugerencias de la IA para esta vacante</h2>
+                {sugerencias.length === 0 ? (
+                  <p className="vacio">La IA no encontró candidatos que encajen bien con esta vacante todavía.</p>
+                ) : (
+                  <ul className="lista-panel">
+                    {sugerencias.map((c) => (
+                      <FilaCandidato
+                        key={c.aspiranteId} candidato={c} vacanteSeleccionada={vacanteId}
+                        yaInvitado={invitadosAEstaVacante.has(c.aspiranteId)} onInvitar={onInvitar}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </section>
             )}
+
+            <section className="admin-seccion">
+              <h2>Todos los candidatos</h2>
+              {cargandoLista ? (
+                <p className="aviso">Buscando…</p>
+              ) : candidatos.length === 0 ? (
+                <p className="vacio">No hay candidatos que coincidan con esa búsqueda.</p>
+              ) : (
+                <ul className="lista-panel">
+                  {candidatos.map((c) => (
+                    <FilaCandidato
+                      key={c.aspiranteId} candidato={c} vacanteSeleccionada={vacanteId}
+                      yaInvitado={invitadosAEstaVacante.has(c.aspiranteId)} onInvitar={onInvitar}
+                    />
+                  ))}
+                </ul>
+              )}
+            </section>
           </>
         )}
       </div>

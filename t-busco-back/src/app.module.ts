@@ -6,6 +6,7 @@ import { PostulacionesModule } from './postulaciones/postulaciones.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { CandidatosModule } from './candidatos/candidatos.module';
 import { AdminModule } from './admin/admin.module';
+import { IaModule } from './ia/ia.module';
 import { CvModule } from './cv/cv.module';
 
 @Module({
@@ -27,6 +28,7 @@ import { CvModule } from './cv/cv.module';
     NotificacionesModule,
     AdminModule,
     CandidatosModule,
+    IaModule,
   ],
 })
 export class AppModule {}

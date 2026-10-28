@@ -1,20 +1,14 @@
 // Todas las llamadas al backend viven aquí. Si algo de la API cambia
 // (la URL, el nombre de una ruta), solo se toca este archivo.
 
-// .replace(/\/+$/, '') quita cualquier barra final, sin importar si
-// NEXT_PUBLIC_API_URL se escribió con ella o sin ella en Vercel.
-// Sin esto, una URL con barra final produce rutas con "//" duplicada.
 const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/+$/, '')
 const CLAVE_TOKEN = 'tbusco-token'
 
-const leerToken = () => {
-  try { return localStorage.getItem(CLAVE_TOKEN) } catch { return null }
-}
+const leerToken = () => { try { return localStorage.getItem(CLAVE_TOKEN) } catch { return null } }
 const encabezadosAutenticados = () => {
   const token = leerToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
-
 async function leerRespuesta(res, mensajePorDefecto) {
   if (res.ok) return res.json()
   const cuerpo = await res.json().catch(() => null)
@@ -125,27 +119,6 @@ export async function eliminarVacante(id) {
   return leerRespuesta(res, 'No se pudo eliminar la vacante.')
 }
 
-// ---------------- Candidatos (búsqueda del reclutador) ----------------
-
-export async function buscarCandidatos(q) {
-  const res = await fetch(`${BASE}/candidatos?q=${encodeURIComponent(q || '')}`, { headers: encabezadosAutenticados() })
-  return leerRespuesta(res, 'No se pudieron buscar candidatos.')
-}
-
-export async function misInvitacionesReclutador() {
-  const res = await fetch(`${BASE}/candidatos/mis-invitaciones`, { headers: encabezadosAutenticados() })
-  return leerRespuesta(res, 'No se pudieron obtener tus invitaciones.')
-}
-
-export async function invitarCandidato(vacanteId, aspiranteId) {
-  const res = await fetch(`${BASE}/candidatos/invitar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...encabezadosAutenticados() },
-    body: JSON.stringify({ vacanteId, aspiranteId }),
-  })
-  return leerRespuesta(res, 'No se pudo enviar la invitación.')
-}
-
 // ---------------- Postulaciones ----------------
 
 export async function postularA(vacanteId) {
@@ -229,12 +202,45 @@ export async function alternarEstadoVacanteAdmin(id) {
   return leerRespuesta(res, 'No se pudo cambiar el estado de la vacante.')
 }
 
+export async function eliminarVacanteAdmin(id) {
+  const res = await fetch(`${BASE}/admin/vacantes/${id}`, { method: 'DELETE', headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudo eliminar la vacante.')
+}
+
 export async function listarPostulacionesAdmin() {
   const res = await fetch(`${BASE}/admin/postulaciones`, { headers: encabezadosAutenticados() })
   return leerRespuesta(res, 'No se pudieron obtener las postulaciones.')
 }
 
-export async function eliminarVacanteAdmin(id) {
-  const res = await fetch(`${BASE}/admin/vacantes/${id}`, { method: 'DELETE', headers: encabezadosAutenticados() })
-  return leerRespuesta(res, 'No se pudo eliminar la vacante.')
+// ---------------- Candidatos (búsqueda del reclutador) ----------------
+
+export async function buscarCandidatos(q) {
+  const res = await fetch(`${BASE}/candidatos?q=${encodeURIComponent(q || '')}`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron buscar candidatos.')
+}
+
+export async function misInvitacionesReclutador() {
+  const res = await fetch(`${BASE}/candidatos/mis-invitaciones`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener tus invitaciones.')
+}
+
+export async function invitarCandidato(vacanteId, aspiranteId) {
+  const res = await fetch(`${BASE}/candidatos/invitar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...encabezadosAutenticados() },
+    body: JSON.stringify({ vacanteId, aspiranteId }),
+  })
+  return leerRespuesta(res, 'No se pudo enviar la invitación.')
+}
+
+// ---------------- IA (recomendaciones) ----------------
+
+export async function obtenerVacantesRecomendadas() {
+  const res = await fetch(`${BASE}/ia/vacantes-recomendadas`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener recomendaciones.')
+}
+
+export async function obtenerCandidatosSugeridos(vacanteId) {
+  const res = await fetch(`${BASE}/ia/candidatos-sugeridos?vacanteId=${vacanteId}`, { headers: encabezadosAutenticados() })
+  return leerRespuesta(res, 'No se pudieron obtener sugerencias.')
 }

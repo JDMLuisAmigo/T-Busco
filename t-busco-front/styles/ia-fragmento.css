@@ -1,0 +1,9 @@
+/* Agregar esto a styles/panel.css (al final) */
+
+.ia-seccion { margin-bottom: 28px; padding: 20px; border: 1.5px dashed #9DB6DE; border-radius: var(--radio); background: var(--claro); }
+.ia-seccion h2 { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; margin-bottom: 14px; color: var(--azul); }
+.ia-razon {
+  display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; padding: 8px 10px;
+  background: #fff; border-radius: var(--radio-pequeno); font-size: 0.8rem; color: var(--texto-suave); font-style: italic;
+}
+.ia-razon svg { flex-shrink: 0; margin-top: 2px; color: var(--acento); }
