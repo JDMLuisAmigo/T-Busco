@@ -1,15 +1,24 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 
-// El nombre exacto del modelo de Gemini cambia seguido (en octubre de 2026
-// conviven gemini-2.5-flash, 3-flash-preview, 3.5/3.7/3.8-flash...). Por eso
-// queda en una variable de entorno con un valor por defecto razonable, en
-// vez de un nombre fijo en el código. Revisa cuál está vigente (y cuál sigue
-// en el nivel gratuito) en https://ai.google.dev/gemini-api/docs/models
-// antes de desplegar.
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+// Google retira y cambia los modelos de Gemini con frecuencia (gemini-2.5-flash,
+// por ejemplo, ya devuelve 404 desde mediados de 2026), y además cada modelo
+// tiene su PROPIA cuota gratuita. Por eso el servicio prueba una LISTA de modelos
+// en orden: si uno falla (retirado, sin cuota, caído), pasa al siguiente.
+//
+// GEMINI_MODEL (opcional, separado por comas) pone tus preferidos AL PRINCIPIO,
+// pero estos de respaldo siempre quedan detrás, para que un nombre viejo en la
+// configuración no deje la función muerta.
+// Primero los "Flash-Lite" (mayor cuota gratuita y suficientes para elegir y
+// explicar), luego 3.5-flash, y al final el alias "-latest", que Google mantiene
+// apuntando al Flash vigente. Revisa los vigentes en:
+// https://ai.google.dev/gemini-api/docs/models
+const MODELOS_DE_RESPALDO = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest'];
+const URL_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 type Sugerencia = { id: string; razon: string };
+type Intento =
+  | { ok: true; texto: string }
+  | { ok: false; estado: number; cuerpo: string; fatal: boolean };
 
 @Injectable()
 export class IaService {
@@ -31,16 +40,7 @@ ${perfil}
 Vacantes disponibles:
 ${lista}`;
 
-    const esquema = {
-      type: 'ARRAY',
-      items: {
-        type: 'OBJECT',
-        properties: { id: { type: 'STRING' }, razon: { type: 'STRING' } },
-        required: ['id', 'razon'],
-      },
-    };
-
-    const resultado = await this.llamarGemini(prompt, esquema);
+    const resultado = await this.llamarGemini(prompt, this.esquemaLista());
     const idsValidos = new Set(vacantes.map((v) => v.id));
     return resultado.filter((r) => idsValidos.has(r.id));
   }
@@ -62,7 +62,13 @@ Descripción: ${vacante.descripcion}
 Candidatos disponibles:
 ${lista}`;
 
-    const esquema = {
+    const resultado = await this.llamarGemini(prompt, this.esquemaLista());
+    const idsValidos = new Set(candidatos.map((c) => c.aspiranteId));
+    return resultado.filter((r) => idsValidos.has(r.id));
+  }
+
+  private esquemaLista() {
+    return {
       type: 'ARRAY',
       items: {
         type: 'OBJECT',
@@ -70,10 +76,6 @@ ${lista}`;
         required: ['id', 'razon'],
       },
     };
-
-    const resultado = await this.llamarGemini(prompt, esquema);
-    const idsValidos = new Set(candidatos.map((c) => c.aspiranteId));
-    return resultado.filter((r) => idsValidos.has(r.id));
   }
 
   private resumirCv(cv: Record<string, any>) {
@@ -91,46 +93,103 @@ ${lista}`;
     return partes.join('\n');
   }
 
-  // Llama a Gemini pidiendo una respuesta en JSON con una forma fija
-  // (responseSchema), para no tener que "adivinar" el formato del texto
-  // que devuelve el modelo.
+  // Los configurados primero, luego los de respaldo, sin repetir.
+  private modelos(): string[] {
+    const configurados = (process.env.GEMINI_MODEL || '')
+      .split(',')
+      .map((m) => m.trim())
+      .filter(Boolean);
+    const todos = [...configurados, ...MODELOS_DE_RESPALDO];
+    return todos.filter((m, i) => todos.indexOf(m) === i);
+  }
+
+  // Prueba los modelos en orden hasta que uno responda. Un error de la CLAVE
+  // (inválida o sin permiso) corta de inmediato: otro modelo no lo arreglaría.
+  // Cualquier otro (404 retirado, 429 sin cuota, 5xx, tiempo agotado) pasa al siguiente.
   private async llamarGemini(prompt: string, esquema: any): Promise<Sugerencia[]> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new ServiceUnavailableException('La recomendación con IA no está configurada (falta GEMINI_API_KEY).');
     }
 
-    let respuesta: Response;
+    let ultimoEstado = 0;
+    for (const modelo of this.modelos()) {
+      let intento = await this.pedir(modelo, apiKey, prompt, esquema);
+
+      // Un 400 que no es por la clave suele ser que ese modelo no acepta el
+      // esquema estricto: se reintenta el MISMO modelo pidiendo JSON "a secas".
+      if (!intento.ok && intento.estado === 400 && !intento.fatal) {
+        this.logger.warn(`Gemini (${modelo}) respondió 400; reintentando sin esquema estricto.`);
+        intento = await this.pedir(modelo, apiKey, prompt, null);
+      }
+
+      if (intento.ok) return this.leerLista(intento.texto);
+
+      ultimoEstado = intento.estado;
+      this.logger.error(`Gemini (${modelo}) respondió ${intento.estado}: ${intento.cuerpo.slice(0, 300)}`);
+      if (intento.fatal) break;
+    }
+
+    const codigo = ultimoEstado ? ` (código ${ultimoEstado})` : '';
+    throw new ServiceUnavailableException(`El servicio de IA no respondió correctamente${codigo}. Intenta de nuevo más tarde.`);
+  }
+
+  private async pedir(modelo: string, apiKey: string, prompt: string, esquema: any | null): Promise<Intento> {
+    const textoPrompt = esquema
+      ? prompt
+      : `${prompt}\n\nResponde ÚNICAMENTE con un arreglo JSON válido de objetos {"id": "...", "razon": "..."}, sin texto adicional.`;
+
+    // El tiempo máximo se maneja a mano (AbortController) para no depender de
+    // versiones recientes de los tipos de Node. Configurable con GEMINI_TIMEOUT_MS.
+    const tiempoMaximo = Number(process.env.GEMINI_TIMEOUT_MS) || 20000;
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), tiempoMaximo);
+
     try {
-      respuesta = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+      const respuesta = await fetch(`${URL_BASE}/${modelo}:generateContent`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // La clave va en un encabezado, no en la URL, para que nunca quede en logs.
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json', responseSchema: esquema },
+          contents: [{ parts: [{ text: textoPrompt }] }],
+          generationConfig: esquema ? { responseMimeType: 'application/json', responseSchema: esquema } : {},
         }),
+        signal: controlador.signal,
       });
+
+      if (!respuesta.ok) {
+        const cuerpo = await respuesta.text().catch(() => '');
+        const claveInvalida =
+          respuesta.status === 401 || respuesta.status === 403 || /API_KEY_INVALID|API key not valid/i.test(cuerpo);
+        return { ok: false, estado: respuesta.status, cuerpo, fatal: claveInvalida };
+      }
+
+      const datos: any = await respuesta.json().catch(() => null);
+      const partes: any[] = datos?.candidates?.[0]?.content?.parts ?? [];
+      const texto = partes.map((p) => p?.text).filter(Boolean).join('');
+      return { ok: true, texto };
     } catch (err) {
-      this.logger.error('No se pudo contactar a Gemini', err as Error);
-      throw new ServiceUnavailableException('No se pudo contactar al servicio de IA. Intenta de nuevo más tarde.');
+      return { ok: false, estado: 0, cuerpo: String(err), fatal: false };
+    } finally {
+      clearTimeout(temporizador);
     }
+  }
 
-    if (!respuesta.ok) {
-      this.logger.error(`Gemini respondió ${respuesta.status}: ${await respuesta.text()}`);
-      throw new ServiceUnavailableException('El servicio de IA no respondió correctamente. Intenta de nuevo más tarde.');
-    }
-
-    const datos = await respuesta.json();
-    const texto = datos?.candidates?.[0]?.content?.parts?.[0]?.text;
+  // Lee la lista aunque el modelo haya envuelto el JSON en ```json ... ``` o
+  // agregado texto alrededor. Si no se puede leer, devuelve [] (sin sugerencias)
+  // en vez de romper la página.
+  private leerLista(texto: string): Sugerencia[] {
     if (!texto) return [];
-
     try {
-      const analizado = JSON.parse(texto);
-      return Array.isArray(analizado) ? analizado : [];
+      const limpio = texto.trim();
+      const inicio = limpio.indexOf('[');
+      const fin = limpio.lastIndexOf(']');
+      const json = inicio !== -1 && fin > inicio ? limpio.slice(inicio, fin + 1) : limpio;
+      const analizado = JSON.parse(json);
+      if (!Array.isArray(analizado)) return [];
+      return analizado.filter((x) => x && typeof x.id === 'string' && typeof x.razon === 'string');
     } catch (err) {
-      // Esto NO debería pasar gracias a responseSchema, pero si el modelo
-      // devuelve algo inesperado, mejor mostrar "sin sugerencias" que romper la página.
-      this.logger.error('La respuesta de Gemini no fue JSON válido', err as Error);
+      this.logger.error('La respuesta de Gemini no fue JSON legible', String(err));
       return [];
     }
   }
